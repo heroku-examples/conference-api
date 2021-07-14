@@ -1,0 +1,15 @@
+{
+  "name": "conference-api",
+  "version": "1.0.0",
+  "description": "A REST API for the Conference LWC App",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "^3.19.1",
+    "fastify-cors": "^6.0.2"
+  }
+}
