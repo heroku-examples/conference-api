@@ -1,29 +1,46 @@
 // Load .env config files if present
 require('dotenv').config()
 
-// Require `core` modules and assign them to constants
-// Require the `fs/promises` module, all the methods will return Promises.
-const fs = require('fs/promises')
-const path = require('path')
+const { Pool } = require('pg')
+const client = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
 
 // Require the fastify framework and instantiate it
 const fastify = require('fastify')({ logger: true })
+
 // Define the HTTP Port
 const PORT = process.env.PORT || 3000
-
-// Define the filename by joining the current directory and data/sessions.json
-const sessionsFilename = path.join(__dirname, 'data', 'sessions.json')
 
 // Register CORS Plugin
 fastify.register(require('fastify-cors'))
 
 // Declare the /api/sessions route
 fastify.get('/api/sessions', async (request, reply) => {
-  // Read the file using async/await as an `utf8` string
-  const sessionsFile = await fs.readFile(sessionsFilename, 'utf8')
-  // Parse the `utf8` string as a JSON object
-  const sessions = JSON.parse(sessionsFile)
-  return sessions
+  const { rows } = await client.query(`
+    SELECT json_build_object(
+      'id', t.id,
+      'name', t.name,
+      'description', t.description,
+      'room', t.room,
+      'dateTime', t.datetime,
+      'speakers', json_agg(json_build_object(
+        'id', s.id,
+        'name', s.name,
+        'bio', s.bio,
+        'pictureUrl', s.picture_url
+        ))
+      ) as session
+    FROM sessions t
+    INNER JOIN sessions_speakers ts ON ts.session_id = t.id
+    INNER JOIN speakers s ON ts.speaker_id = s.id
+    GROUP BY t.id
+    ORDER BY t.id
+  `)
+  return rows
 })
 
 // Run the server!
